@@ -1,0 +1,41 @@
+{
+  "name": "@dreamworld/redis-cache",
+  "version": "0.0.0-development",
+  "description": "2 Layer cache (in-memory + redis) using Redis TRACKING",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DreamworldSolutions/redis-cache.git"
+  },
+  "keywords": [
+    "redis",
+    "cache"
+  ],
+  "author": "Chirag Moradiya",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DreamworldSolutions/redis-cache/issues"
+  },
+  "homepage": "https://github.com/DreamworldSolutions/redis-cache#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "semantic-release": "^17.4.2"
+  },
+  "release": {
+    "branches": [
+      "+([0-9])?(.{+([0-9]),x}).x",
+      "master",
+      {
+        "name": "feature/*",
+        "prerelease": "${name.replace(/^feature\\//g, \"\")}",
+        "channel": "${name.replace(/^feature\\//g, \"\")}"
+      }
+    ]
+  }
+}
