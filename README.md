@@ -120,7 +120,6 @@ cache.wrap('key1', ()=>{
 
 It will read the value from the cache & returns it if exists. Otherwise, invokes the task to find the value. But, after the task is completed, the return value isn't put back into cache.
 
-# TODO
 [node-config]: https://www.npmjs.com/package/config
 [node-cache-manager]: https://github.com/BryanDonovan/node-cache-manager
 [node-cache-manager-redis-store]: https://github.com/dabroek/node-cache-manager-redis-store
