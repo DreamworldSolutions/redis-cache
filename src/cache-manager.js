@@ -39,7 +39,8 @@ const SAMPLE_CONFIG = {
   },
   globalCaches: {
     cache1: {
-      ttl: 600 //in seconds
+      ttl: 600, //in seconds
+      readOnly: true
     }
   }
 };
@@ -87,7 +88,7 @@ const overrideGet = (cache) => {
   let _get = cache.get.bind(cache);
   cache.get = (async (...args) => {
     let val = await _get.apply(this, args);
-    if(val !== undefined || val !== null) {
+    if (val !== undefined || val !== null) {
       cache.memory.set(args[0], val);
     }
     return val;
@@ -100,7 +101,7 @@ const overrideMGet = (cache) => {
     let vals = await _mget.apply(this, args);
     args.forEach((key, index) => {
       let val = vals[index];
-      if(val !== undefined || val !== null) {
+      if (val !== undefined || val !== null) {
         cache.memory.set(key, val);
       }
     });
@@ -108,10 +109,13 @@ const overrideMGet = (cache) => {
   }).bind(cache);
 }
 
-const createCache = (prefix, ttl) => {
+const createCache = (prefix, ttl, readOnly = false) => {
   let redisCache = cacheManager.caching({ store: redisStore, ..._config.redis, prefix, ttl: ttl });
   let memoryCache = cacheManager.caching({ store: 'memory', ttl: ttl });
-  let multiCache = cacheManager.multiCaching([memoryCache, redisCache]);
+  let multiCacheOptions = !readOnly ? {} : {
+    isCacheableValue: () => false
+  };
+  let multiCache = cacheManager.multiCaching([memoryCache, redisCache], multiCacheOptions);
   multiCache.memory = memoryCache;
   multiCache.redis = redisCache;
   overrideGet(multiCache);
@@ -120,13 +124,19 @@ const createCache = (prefix, ttl) => {
 }
 
 const createServiceCache = (name) => {
-  const cache = serviceCaches[name] = createCache(`${_config.serviceName}:${name}:`);
+  const cacheConfig = _config.serviceCaches && _config.serviceCaches[name] || {};
+  const ttl = cacheConfig.ttl;
+  const readOnly = cacheConfig.readOnly;
+  const cache = serviceCaches[name] = createCache(`${_config.serviceName}:${name}:`, ttl, readOnly);
   logger.info(`createServiceCache: ${name}`)
   return cache;
 }
 
 const createGlobalCache = (name) => {
-  const cache = globalCaches[name] = createCache(`${name}:`);
+  const cacheConfig = _config.globalCaches && _config.globalCaches[name] || {};
+  const ttl = cacheConfig.ttl;
+  const readOnly = cacheConfig.readOnly;
+  const cache = globalCaches[name] = createCache(`${name}:`, ttl, readOnly);
   logger.info(`createGlobalCache: ${name}`)
   return cache;
 }

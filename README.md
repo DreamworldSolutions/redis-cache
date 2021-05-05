@@ -108,17 +108,17 @@ Please note that,
 - If you invoke the `getCache()` again fro the same cache name, then the same cache reference
 is returned. So, you can retrieve the cache instance wherever needed using this method.
 
-### Read-only `wrap` call
+### Read-only Cache
 
 ```javascript
+cache = cacheManager.getGlobalCache('cache1');
 cache.wrap('key1', ()=>{
   //task
-}, {
-  isCacheableValue: () => false
 });
 ```
 
-It will read the value from the cache & returns it if exists. Otherwise, invokes the task to find the value. But, after the task is completed, the return value isn't put back into cache.
+In cache config, if you set `readOnly=true` then the cache becomes readonly. In the example config we have set global cache `cache1` as read-only. So, It will read the value from the cache & returns it if exists. Otherwise, invokes the task to find the value. But, after the task is completed, the return value isn't put back into cache.
+
 
 [node-config]: https://www.npmjs.com/package/config
 [node-cache-manager]: https://github.com/BryanDonovan/node-cache-manager

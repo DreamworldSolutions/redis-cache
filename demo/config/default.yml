@@ -12,6 +12,7 @@ redis-cache:
   globalCaches:
     cache1:
       ttl: 60
+      readOnly: false
 log4js:
   appenders:
     file:
