@@ -1,10 +1,8 @@
 process.env.SUPPRESS_NO_CONFIG_WARNING = 'y';
 import config from 'config';
 
-
 import { start as startGlobalCacheRefreshner } from './global-cache-refreshner.js';
 import { start as startServiceCacheRefreshner } from './service-cache-refreshner.js';
-
 
 import cacheManager from 'cache-manager';
 import redisStore from 'cache-manager-redis-store';
