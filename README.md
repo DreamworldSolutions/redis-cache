@@ -40,10 +40,21 @@ Using this redis-server feature, in-memory cache-entries are automatically refre
 - Initialize
 - Usage
 
+### Add NPM dependency
+
+```sh
+npm install @dreamworld/redis-cache --save
+```
+
+or
+
+```sh
+yarn add @dreamworld/redis-cache
+```
 ### Initialize
 
 ```javascript
-import {cacheManager} from 'redis-cache';
+import {cacheManager} from '@dreamworld/redis-cache';
 
 cacheManager.init({
   serviceName: 'user',
