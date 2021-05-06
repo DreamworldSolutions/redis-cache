@@ -3,4 +3,4 @@ log4js:
     default:
       appenders:
       - console
-      level: DEBUG
+      level: TRACE

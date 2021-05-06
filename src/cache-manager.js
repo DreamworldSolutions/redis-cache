@@ -59,7 +59,7 @@ export const init = (conf) => {
   logger.debug('init: config=', _config);
 
   //start listener for the service caches
-  startServiceCacheRefreshner(_config.redis);
+  startServiceCacheRefreshner(_config.redis, _config.serviceName);
 
   //start listener for the global caches
   let globalCacheNames = !_config.globalCaches ? [] : Object.keys(_config.globalCaches);
@@ -90,6 +90,8 @@ const overrideGet = (cache) => {
     let val = await _get.apply(this, args);
     if (val !== undefined || val !== null) {
       cache.memory.set(args[0], val);
+    } else {
+      cache.memory.del(key);
     }
     return val;
   }).bind(cache);
@@ -103,10 +105,33 @@ const overrideMGet = (cache) => {
       let val = vals[index];
       if (val !== undefined || val !== null) {
         cache.memory.set(key, val);
+      } else {
+        cache.memory.del(key);
       }
     });
     return vals;
   }).bind(cache);
+}
+
+/**
+ * Adds a `refresh(key)` method to the cache. 
+ * On `refresh` the in-memory value of that cache-entry is updated/refreshed with the redis
+ * cache value.
+ * @param {caching} cache 
+ */
+const addRefresh = (cache) => {
+  cache.refresh = async (key) => {
+    let value = await cache.memory.get(key);
+    if (value === null || value === undefined) {
+      logger.trace(`refresh: CacheEntry doesn't exist. prefix=${cache.prefix}, key=${key}`);
+      return false;
+    }
+
+    await cache.memory.del(key);
+    await cache.get(key);
+    logger.debug(`refresh: done. prefix=${cache.prefix}, key=${key}, value=${value}`);
+    return true;
+  }
 }
 
 const createCache = (prefix, ttl, readOnly = false) => {
@@ -118,8 +143,10 @@ const createCache = (prefix, ttl, readOnly = false) => {
   let multiCache = cacheManager.multiCaching([memoryCache, redisCache], multiCacheOptions);
   multiCache.memory = memoryCache;
   multiCache.redis = redisCache;
+  multiCache.prefix = prefix;
   overrideGet(multiCache);
   overrideMGet(multiCache);
+  addRefresh(multiCache);
   return multiCache;
 }
 
