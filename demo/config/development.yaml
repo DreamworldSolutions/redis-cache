@@ -1,6 +1,8 @@
+redis-cache:
+  serviceName: user
 log4js:
   categories:
     default:
       appenders:
       - console
-      level: DEBUG
+      level: TRACE

@@ -4,10 +4,9 @@ import config from 'config';
 import { start as startGlobalCacheRefreshner } from './global-cache-refreshner.js';
 import { start as startServiceCacheRefreshner } from './service-cache-refreshner.js';
 
-import cacheManager from 'cache-manager';
-import redisStore from 'cache-manager-redis-store';
-
 import log4js from 'log4js';
+import redisRetryStrategy from './redis-retry-strategy.js';
+import createCache from './create-cache.js';
 
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
 
@@ -57,14 +56,16 @@ export const init = (conf) => {
   _config = conf;
 
   logger.debug('init: config=', _config);
+  // _config.redis.retry_strategy = redisRetryStrategy;
+  // const redisOptions = {..._config.redis, retry_strategy: redisRetryStrategy}
 
   //start listener for the service caches
-  startServiceCacheRefreshner(_config.redis, _config.serviceName);
+  startServiceCacheRefreshner(redisOptions(), _config.serviceName);
 
   //start listener for the global caches
   let globalCacheNames = !_config.globalCaches ? [] : Object.keys(_config.globalCaches);
   if (globalCacheNames.length > 0) {
-    startGlobalCacheRefreshner(_config.redis, globalCacheNames);
+    startGlobalCacheRefreshner(redisOptions(), globalCacheNames);
   }
 
   initialized = true;
@@ -77,94 +78,29 @@ const validateInitialized = () => {
   }
 }
 
-/**
- * It overrides `get` method of the cache to resolve a bug in the multi-cache's `get`.
- * multi-cache's `get` returns the value from the redis cache when it doesn't exist into
- * in-memory, but after that the newly read value isn't put into the in-memory cache.
- * 
- * @param {caching} cache 
- */
-const overrideGet = (cache) => {
-  let _get = cache.get.bind(cache);
-  cache.get = (async (...args) => {
-    let val = await _get.apply(this, args);
-    if (val !== undefined || val !== null) {
-      cache.memory.set(args[0], val);
-    } else {
-      cache.memory.del(key);
-    }
-    return val;
-  }).bind(cache);
-}
-
-const overrideMGet = (cache) => {
-  let _mget = cache.mget.bind(cache);
-  cache.mget = (async (...args) => {
-    let vals = await _mget.apply(this, args);
-    args.forEach((key, index) => {
-      let val = vals[index];
-      if (val !== undefined || val !== null) {
-        cache.memory.set(key, val);
-      } else {
-        cache.memory.del(key);
-      }
-    });
-    return vals;
-  }).bind(cache);
-}
-
-/**
- * Adds a `refresh(key)` method to the cache. 
- * On `refresh` the in-memory value of that cache-entry is updated/refreshed with the redis
- * cache value.
- * @param {caching} cache 
- */
-const addRefresh = (cache) => {
-  cache.refresh = async (key) => {
-    let value = await cache.memory.get(key);
-    if (value === null || value === undefined) {
-      logger.trace(`refresh: CacheEntry doesn't exist. prefix=${cache.prefix}, key=${key}`);
-      return false;
-    }
-
-    await cache.memory.del(key);
-    await cache.get(key);
-    logger.trace(`refresh: done. prefix=${cache.prefix}, key=${key}, value=${value}`);
-    return true;
-  }
-}
-
-const createCache = (prefix, ttl, readOnly = false) => {
-  let redisCache = cacheManager.caching({ store: redisStore, ..._config.redis, prefix, ttl: ttl });
-  let memoryCache = cacheManager.caching({ store: 'memory', ttl: ttl });
-  let multiCacheOptions = !readOnly ? {} : {
-    isCacheableValue: () => false
-  };
-  let multiCache = cacheManager.multiCaching([memoryCache, redisCache], multiCacheOptions);
-  multiCache.memory = memoryCache;
-  multiCache.redis = redisCache;
-  multiCache.prefix = prefix;
-  overrideGet(multiCache);
-  overrideMGet(multiCache);
-  addRefresh(multiCache);
-  return multiCache;
+const redisOptions = () => {
+  return { ..._config.redis, retry_strategy: redisRetryStrategy };
 }
 
 const createServiceCache = (name) => {
   const cacheConfig = _config.serviceCaches && _config.serviceCaches[name] || {};
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
-  const cache = serviceCaches[name] = createCache(`${_config.serviceName}:${name}:`, ttl, readOnly);
+  const cache = serviceCaches[name] = createCache(redisOptions(), `${_config.serviceName}:${name}:`, ttl, readOnly);
   logger.info(`createServiceCache: ${name}`)
   return cache;
 }
 
 const createGlobalCache = (name) => {
-  const cacheConfig = _config.globalCaches && _config.globalCaches[name] || {};
+  const cacheConfig = _config.globalCaches && _config.globalCaches[name];
+  if(!cacheConfig) {
+    throw new Error(`Cache isn't defined in the config. Make sure you have configured this global cache.`);
+  }
+
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
-  const cache = globalCaches[name] = createCache(`${name}:`, ttl, readOnly);
-  logger.info(`createGlobalCache: ${name}`)
+  const cache = globalCaches[name] = createCache(redisOptions(), `${name}:`, ttl, readOnly);
+  logger.info(`createGlobalCache: name=${name}, ttl=${ttl}, readOnly=${readOnly}`)
   return cache;
 }
 
@@ -187,6 +123,39 @@ export const getGlobalCache = (cacheName, skipCreateNew = false) => {
   } else {
     return globalCaches[cacheName] || createGlobalCache(cacheName);
   }
+}
+
+/**
+ * Refreshes in-memory cache entries for all the active global caches.
+ * Ideally, this method shouldn't be used by the user. It's being used by the 
+ * `global-cache-refresher` when redis connection is restored after the disconnection.
+ */
+export const refreshAllGlobalCaches = () => {
+  let promises = Object.entries(globalCaches).map(async (entry) => {
+    const cacheName = entry[0]; 
+    const cache = entry[1];
+    const n = await cache.refreshAll();
+    logger.info(`refreshAllGlobalCaches: done. cache=${cacheName}, noOfKeys=${n}`);
+  });
+
+  return Promise.all(promises);
+}
+
+/**
+ * Refreshes in-memory cache entries for all the active service caches.
+ * Ideally, this method shouldn't be used by the user. It's being used by the 
+ * `service-cache-refresher` when redis connection is restored after the disconnection.
+ */
+export const refreshAllCaches = () => {
+
+  let promises = Object.entries(serviceCaches).map(async (entry) => {
+    const cacheName = entry[0]; 
+    const cache = entry[1];
+    const n = await cache.refreshAll();
+    logger.info(`refreshAllCaches: done. cache=${cacheName}, noOfKeys=${n}`);
+  });
+
+  return Promise.all(promises);
 }
 
 //Auto initialize if the configuration is specified through node config.

@@ -11,7 +11,7 @@ logger.info('hello');
 const test = async () => {
   const cache = cacheManager.getGlobalCache('cache1');
   const cache2 = cacheManager.getGlobalCache('cache2');
-  await cache.set('key1', 'value1');
+  // await cache.set('key1', 'value1');
   setTimeout(async () => {
     let val = await cache.get('key1');
     logger.info('After 3 seconds, value=', val); //expected `value1`

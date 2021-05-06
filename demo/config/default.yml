@@ -8,14 +8,16 @@ redis-cache:
     cache1:
       ttl: 600
     cache2:
-      ttl: 60
+      ttl: 6000
   globalCaches:
     cache1:
-      ttl: 60
+      ttl: 600
       readOnly: false
     cache2:
-      ttl: 60
+      ttl: 600
       readOnly: false
+    cache3:
+      ttl: 600
 log4js:
   appenders:
     file:

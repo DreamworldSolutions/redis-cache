@@ -9,31 +9,24 @@ logger.info('hello');
 
 
 const test = async () => {
-  const cache2 = cacheManager.getCache('cache2');
-  await cache2.set('key1', 'value1');
-  setTimeout(async () => {
-    let val = await cache2.get('key1');
-    logger.info('After 3 seconds, value=', val); //expected `value1`
-  }, 3000);
+  const cache1 = cacheManager.getGlobalCache('cache1');
+  await cache1.set('key1', 'value1', 'key2', 'value2', 'key3', 'value3', 'key4', 'value4');
+  const keys1 = await cache1.redis.keys();
+  logger.debug('cache1 redis keys', keys1);
 
-  // setTimeout(async () => {
-  //   // let memoryVal = await cache2.memory.get('key1');
-  //   // let redisval = await cache2.redis.get('key1');
-  //   let val = await cache2.get('key1');
-  //   logger.info('After 5 seconds, values=', val); //expected `undefined`
-  // }, 5500);
+  const cache2 = cacheManager.getGlobalCache('cache2');
+  await cache2.set('key1', 'value1', 'key2', 'value2', 'key3', 'value3', 'key4', 'value4');
+  const keys2 = await cache2.redis.keys();
+  logger.debug('cache2 redis keys', keys2);
 
-  setTimeout(async () => {
-    let startTime = new Date().getTime();
-    let val = await cache2.get('key5');
-    logger.info('After 10 seconds, key5 value=', val, 'duration', new Date().getTime() - startTime); //expected `undefined`
-  }, 20000);
+  const cache3 = cacheManager.getGlobalCache('cache3');
+  await cache3.set('key1', 'value1', 'key2', 'value2', 'key3', 'value3', 'key4', 'value4');
+  const keys3 = await cache3.redis.keys();
+  logger.debug('cache3 redis keys', keys3);
 
-  setTimeout(async () => {
-    let startTime = new Date().getTime();
-    let val = await cache2.get('key1');
-    logger.info('After 10 seconds, key1 value=', val, 'duration', new Date().getTime() - startTime); //expected `undefined`
-  }, 20000);
+
+  // await cache1.redis.reset();
+  // await cache2.redis.reset();
 }
 
 test();
