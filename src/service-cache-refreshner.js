@@ -23,7 +23,9 @@ const refreshCacheEntry = async (cacheName, key) => {
     }
 
     let refreshed = await cache.refresh(key);
-    logger.debug(`refreshCacheEntry: done. name=${cacheName}, key=${key}, refreshed=${refreshed}`);
+    if(refreshed) {
+      logger.debug(`refreshCacheEntry: done. name=${cacheName}, key=${key}`);
+    }
   } catch (error) {
     logger.error(`refreshCacheEntry: failed. name=${cacheName}, key=${key}`, error)
   }

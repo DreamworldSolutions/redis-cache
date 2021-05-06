@@ -129,7 +129,7 @@ const addRefresh = (cache) => {
 
     await cache.memory.del(key);
     await cache.get(key);
-    logger.debug(`refresh: done. prefix=${cache.prefix}, key=${key}, value=${value}`);
+    logger.trace(`refresh: done. prefix=${cache.prefix}, key=${key}, value=${value}`);
     return true;
   }
 }

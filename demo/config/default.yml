@@ -13,6 +13,9 @@ redis-cache:
     cache1:
       ttl: 60
       readOnly: false
+    cache2:
+      ttl: 60
+      readOnly: false
 log4js:
   appenders:
     file:
