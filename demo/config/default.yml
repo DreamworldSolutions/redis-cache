@@ -1,4 +1,4 @@
-redis-cache:
+redisCache:
   serviceName: user
   redis:
     host: '127.0.0.1'

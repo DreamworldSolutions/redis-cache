@@ -24,6 +24,6 @@ const getModuleConfig = (moduleRootDir, moduleName) => {
 
 const esModuleDirName = path.dirname(fileURLToPath(import.meta.url));
 const moduleRootDir = path.join(esModuleDirName, '..');
-const moduleConfig = getModuleConfig(moduleRootDir, 'redis-cache');
+const moduleConfig = getModuleConfig(moduleRootDir, 'redisCache');
 
 export default moduleConfig;

@@ -1,4 +1,4 @@
-redis-cache:
+redisCache:
   serviceName: user
 log4js:
   categories:

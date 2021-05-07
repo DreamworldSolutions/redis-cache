@@ -53,12 +53,12 @@ yarn add @dreamworld/redis-cache
 ```
 ### Initialize
 
-It uses [`node-config`][node-config] for the configuration. So, you can specify the configurations under `redis-cache` module, in your application's configuration file.
+It uses [`node-config`][node-config] for the configuration. So, you can specify the configurations under `redisCache` module, in your application's configuration file.
 
 An Example configuration file of your application.
 
 ```yaml
-redis-cache:
+redisCache:
   serviceName: user
   redis:
     host: '127.0.0.1'
