@@ -1,0 +1,8 @@
+{
+  "serviceName": "SERVICE_NAME",
+  "redis": {
+    "host": "REDIS_HOST",
+    "port": "REDIS_PORT",
+    "password": "REDIS_PASSWORD"
+  }
+}

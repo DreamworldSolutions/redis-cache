@@ -1,11 +1,8 @@
 import config from 'config';
 import log4js from 'log4js';
 log4js.configure(config.get('log4js'));
-
 const logger = log4js.getLogger('dreamworld.redis-cache.test2');
-
 import { cacheManager } from '../index.js';
-logger.info('hello');
 
 
 const test = async () => {

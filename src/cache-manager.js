@@ -7,9 +7,9 @@ import { start as startServiceCacheRefreshner } from './service-cache-refreshner
 import log4js from 'log4js';
 import redisRetryStrategy from './redis-retry-strategy.js';
 import createCache from './create-cache.js';
+import moduleConfig from './module-config.js';
 
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
-
 
 /**
  * Holds the service caches built so far.
@@ -158,8 +158,8 @@ export const refreshAllCaches = () => {
   return Promise.all(promises);
 }
 
+
+// console.log('config', moduleConfig);
+
 //Auto initialize if the configuration is specified through node config.
-if (config.has('redis-cache')) {
-  logger.info('node config found....');
-  init(config.get('redis-cache'));
-}
+init(moduleConfig);

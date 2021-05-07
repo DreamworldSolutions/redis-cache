@@ -53,34 +53,36 @@ yarn add @dreamworld/redis-cache
 ```
 ### Initialize
 
-```javascript
-import {cacheManager} from '@dreamworld/redis-cache';
+It uses [`node-config`][node-config] for the configuration. So, you can specify the configurations under `redis-cache` module, in your application's configuration file.
 
-cacheManager.init({
-  serviceName: 'user',
-  redis: {
-    host: '127.0.0.1',
-    port: 6379,
-    password: '1234'
-  },
-  serviceCaches: {
-    cache1: {
-      ttl: 600 //in seconds
-    },
-    cache2: {
-      ttl: 600 //in seconds
-    }
-  },
-  globalCaches: {
-    cache1: {
-      ttl: 600 //in seconds
-    }
-  }
-});
+An Example configuration file of your application.
+
+```yaml
+redis-cache:
+  serviceName: user
+  redis:
+    host: '127.0.0.1'
+    port: 6379
+    password: 'chirag1234'
+  serviceCaches:
+    cache1:
+      ttl: 600
+    cache2:
+      ttl: 6000
+      readOnly: true
+  globalCaches:
+    cache1:
+      ttl: 600
+      readOnly: true
+    cache2:
+      ttl: 600
+    cache3:
+      ttl: 600
 ```
 
-If you are using [`node-config`][node-config] to configure the service, you can specify the same configurations under module/key `redis-cache`. In this case, you don't need to invoke the `init()` method like this. It will be automatically initialized on the ES module load.
-
+- `serviceCaches` and `globalCaches` are optional configurations. Specify them when you want
+  to either set the default `ttl` for your cache OR make it as the `readOnly` cache.
+- **Environment Variables** `SERVICE_NAME`, `REDIST_HOST`, `REDIS_PORT` and `REDIS_PASSWORD` can also be used to set the configuration.
 ### Usage
 
 ```javascript
