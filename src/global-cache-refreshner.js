@@ -9,13 +9,13 @@ const parseMessage = (message) => {
   const redisKeys = message.split(',');
   redisKeys.forEach((redisKey) => {
     const tokens = redisKey.split(':');
-    if (tokens.length != 2) {
+    if (tokens.length < 2) {
       logger.warn(`Unexpected redisKey '${redisKey}'. It must be in the format $cacheName:$key`);
       return;
     }
 
     const cacheName = tokens[0];
-    const key = tokens[1];
+    const key = redisKey.substr(cacheName.length + 1);
 
     let cacheKeys = cacheEntries[cacheName] || [];
     cacheKeys.push(key);
