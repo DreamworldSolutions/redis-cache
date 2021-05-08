@@ -6,6 +6,7 @@
  */
 import redis from 'redis';
 import { promisify } from 'util';
+import { setPromiseTimeout } from './util.js';
 
 export const create = ({ logger, parseMessage, getCache, refreshAllCaches }) => {
 
@@ -24,6 +25,40 @@ export const create = ({ logger, parseMessage, getCache, refreshAllCaches }) => 
     } catch (error) {
       logger.error(`refreshCacheEntry: failed. name=${cacheName}, keys=${keys}`, error)
     }
+  }
+
+
+  /**
+   * Sends ping command at the interval of 3 seconds. If it doesn't receive the reply
+   * for consecutive 3 attempts, it quites the client.
+   * @param {*} redisClient 
+   */
+  const pingWatch = (redisClient, redisConfig) => {
+    const pingCommand = promisify(redisClient.ping).bind(redisClient);
+    const maxFailedPings = 10;
+    const pingInterval = 3000;
+
+    let failedPings = 0;
+    const intervalHandle = setInterval(async () => {
+      try {
+        let response = await setPromiseTimeout(pingCommand('hello'), 2900);
+        logger.trace('pingWatch: response:', response);
+        failedPings = 0; //reset counter
+      } catch (err) {
+        failedPings++;
+        if (failedPings < maxFailedPings) {
+          logger.warn(`pingWatch: failed. attempt=${failedPings}`);
+          return;
+        }
+
+        //quite the client
+        clearInterval(intervalHandle);
+        logger.warn(`pingWatch: quitting the client, as 3 consecutive pings dropped.`);
+        redisClient.quit();
+        logger.warn('pingWatch: retrying connection...');
+        start(redisConfig);
+      }
+    }, pingInterval);
   }
 
   let clientId;
@@ -57,6 +92,7 @@ export const create = ({ logger, parseMessage, getCache, refreshAllCaches }) => 
         await listenerClient.subscribe('__redis__:invalidate');
         logger.info(`TRACKING enabled. clientId=${clientId}`);
         _watchAll();
+        pingWatch(listenerClient, redisConfig);
       } catch (error) {
         logger.error('Failed to enable TRACKING', error);
       }
@@ -100,6 +136,10 @@ export const create = ({ logger, parseMessage, getCache, refreshAllCaches }) => 
   const _watch = async (redisClient, prefix) => {
     logger.trace(`_watch: invoked. prefix=${prefix}`);
     const clientCommand = promisify(redisClient.client).bind(redisClient);
+
+    //Turn off tracking if it's already enabled. Because, redis gives error if Tracking enabled
+    //for the same prefix again; which happens in the case of the connection lost & re-gained.
+    await clientCommand('TRACKING', ['off']); 
     await clientCommand('TRACKING', ['on', `REDIRECT`, `${clientId}`, 'BCAST', 'NOLOOP', 'PREFIX', `${prefix}`]);
     logger.info(`_watch: completed. prefix=${prefix}`);
   }

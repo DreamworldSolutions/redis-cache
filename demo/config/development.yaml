@@ -1,8 +1,9 @@
 redisCache:
-  serviceName: user
+  redis:
+    host: '192.168.11.206'
 log4js:
   categories:
     default:
       appenders:
       - console
-      level: DEBUG
+      level: TRACE
