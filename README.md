@@ -117,8 +117,8 @@ let redisStore = cache.redis;
 ```
 
 Please note that,
-- `getGlobalCache` fails if the cache isn't defined in the configuration. But, `getCache` won't fail.
-- If you invoke the `getCache()` again fro the same cache name, then the same cache reference
+- Cache configurations should be provided only for the default value purpose. If you don't want to set any default TTL (and want to keep cache entry forever) then you may skip providing the cache configuration.
+- If you invoke the `getCache()` again for the same cache name, then the same cache reference
 is returned. So, you can retrieve the cache instance wherever needed using this method.
 
 ### Read-only Cache

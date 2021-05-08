@@ -1,12 +1,10 @@
 process.env.SUPPRESS_NO_CONFIG_WARNING = 'y';
-import config from 'config';
-
-import { start as startGlobalCacheRefreshner } from './global-cache-refreshner.js';
-import { start as startServiceCacheRefreshner } from './service-cache-refreshner.js';
 
 import log4js from 'log4js';
 import redisRetryStrategy from './redis-retry-strategy.js';
 import createCache from './create-cache.js';
+import { watch as watchServiceCache, start as startServiceCacheRefreshner  } from './service-cache-refreshner.js';
+import { watch as watchGlobalCache, start as startGlobalCacheRefreshner } from './global-cache-refreshner.js';
 import moduleConfig from './module-config.js';
 
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
@@ -60,13 +58,8 @@ export const init = (conf) => {
   // const redisOptions = {..._config.redis, retry_strategy: redisRetryStrategy}
 
   //start listener for the service caches
-  startServiceCacheRefreshner(redisOptions(), _config.serviceName);
-
-  //start listener for the global caches
-  let globalCacheNames = !_config.globalCaches ? [] : Object.keys(_config.globalCaches);
-  if (globalCacheNames.length > 0) {
-    startGlobalCacheRefreshner(redisOptions(), globalCacheNames);
-  }
+  startServiceCacheRefreshner(redisOptions());
+  startGlobalCacheRefreshner(redisOptions());
 
   initialized = true;
   logger.info("Initialized");
@@ -87,20 +80,18 @@ const createServiceCache = (name) => {
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
   const cache = serviceCaches[name] = createCache(redisOptions(), `${_config.serviceName}:${name}:`, ttl, readOnly);
+  watchServiceCache(cache);
   logger.info(`createServiceCache: ${name}`)
   return cache;
 }
 
 const createGlobalCache = (name) => {
-  const cacheConfig = _config.globalCaches && _config.globalCaches[name];
-  if(!cacheConfig) {
-    throw new Error(`Cache isn't defined in the config. Make sure you have configured this global cache.`);
-  }
-
+  const cacheConfig = _config.globalCaches && _config.globalCaches[name] || {};
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
   const cache = globalCaches[name] = createCache(redisOptions(), `${name}:`, ttl, readOnly);
-  logger.info(`createGlobalCache: name=${name}, ttl=${ttl}, readOnly=${readOnly}`)
+  watchGlobalCache(cache);
+  logger.info(`createGlobalCache: name=${name}, ttl=${ttl}, readOnly=${readOnly}`);
   return cache;
 }
 
@@ -132,7 +123,7 @@ export const getGlobalCache = (cacheName, skipCreateNew = false) => {
  */
 export const refreshAllGlobalCaches = () => {
   let promises = Object.entries(globalCaches).map(async (entry) => {
-    const cacheName = entry[0]; 
+    const cacheName = entry[0];
     const cache = entry[1];
     const n = await cache.refreshAll();
     logger.info(`refreshAllGlobalCaches: done. cache=${cacheName}, noOfKeys=${n}`);
@@ -147,9 +138,8 @@ export const refreshAllGlobalCaches = () => {
  * `service-cache-refresher` when redis connection is restored after the disconnection.
  */
 export const refreshAllCaches = () => {
-
   let promises = Object.entries(serviceCaches).map(async (entry) => {
-    const cacheName = entry[0]; 
+    const cacheName = entry[0];
     const cache = entry[1];
     const n = await cache.refreshAll();
     logger.info(`refreshAllCaches: done. cache=${cacheName}, noOfKeys=${n}`);

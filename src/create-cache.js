@@ -89,7 +89,6 @@ const overrideKeys = (cache, prefix) => {
   const _keys = cache.keys;
   cache.keys = async (pattern = "*") => {
     pattern = prefix + pattern;
-    logger.trace('keys: pattern=', pattern);
     let keys = await _keys.apply(cache, [pattern]);
     return keys.map((key) => key.substr(prefix.length));
   }
