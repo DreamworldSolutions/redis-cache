@@ -3,7 +3,7 @@ process.env.SUPPRESS_NO_CONFIG_WARNING = 'y';
 import log4js from 'log4js';
 import redisRetryStrategy from './redis-retry-strategy.js';
 import createCache from './create-cache.js';
-import { watch as watchServiceCache, start as startServiceCacheRefreshner  } from './service-cache-refreshner.js';
+import { watch as watchServiceCache, start as startServiceCacheRefreshner } from './service-cache-refreshner.js';
 import { watch as watchGlobalCache, start as startGlobalCacheRefreshner } from './global-cache-refreshner.js';
 import moduleConfig from './module-config.js';
 
@@ -71,11 +71,25 @@ const validateInitialized = () => {
   }
 }
 
+
+/**
+ * Rejects cacheName if it contains colon (:) as it's used as the 
+ * separator.
+ * 
+ * @param {*} cacheName 
+ */
+const validateCacheName = (cacheName) => {
+  if (cacheName.indexOf(':') !== -1) {
+    throw new Error('Invalid Cache Name. It must not contain colon (:).')
+  }
+}
+
 const redisOptions = () => {
   return { ..._config.redis, retry_strategy: redisRetryStrategy };
 }
 
 const createServiceCache = (name) => {
+  validateCacheName(name);
   const cacheConfig = _config.serviceCaches && _config.serviceCaches[name] || {};
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
@@ -86,6 +100,7 @@ const createServiceCache = (name) => {
 }
 
 const createGlobalCache = (name) => {
+  validateCacheName(name);
   const cacheConfig = _config.globalCaches && _config.globalCaches[name] || {};
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
