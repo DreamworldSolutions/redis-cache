@@ -25,7 +25,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "semantic-release": "^17.4.2"
+    "semantic-release": "17.0.8"
   },
   "release": {
     "branches": [
