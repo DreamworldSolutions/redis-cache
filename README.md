@@ -133,6 +133,11 @@ cache.wrap('key1', ()=>{
 In cache config, if you set `readOnly=true` then the cache becomes readonly. In the example config we have set global cache `cache1` as read-only. So, It will read the value from the cache & returns it if exists. Otherwise, invokes the task to find the value. But, after the task is completed, the return value isn't put back into cache.
 
 
+Further readings:
+- [Detailed Behaviors](./docs/behaviors.md)
+- [Architectural Decisions](./docs/architectural-decisions.md)
+
+
 [node-config]: https://www.npmjs.com/package/config
 [node-cache-manager]: https://github.com/BryanDonovan/node-cache-manager
 [node-cache-manager-redis-store]: https://github.com/dabroek/node-cache-manager-redis-store
