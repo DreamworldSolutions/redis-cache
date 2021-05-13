@@ -13,13 +13,22 @@ const getModuleConfig = (moduleRootDir, moduleName) => {
   const options = { skipConfigSources: true };
 
   const baseConfigDir = path.join(moduleRootDir, 'config');
-  const baseConfig = config.util.loadFileConfigs(baseConfigDir, options);
-  config.util.setModuleDefaults(moduleName, baseConfig);
+  const baseConfig = config.util.cloneDeep(config.util.loadFileConfigs(baseConfigDir, options));
+  // config.util.setModuleDefaults(moduleName, baseConfig);
+
+  let appConfig;
+  try {
+    appConfig = config.util.cloneDeep(config.get(moduleName));
+  } catch (err) {
+    appConfig = {};
+  }
+
+  let config = config.util.extendDeep(baseConfig, appConfig);
 
   const envConfigDir = path.join(moduleRootDir, 'config-env');
   const envConfig = config.util.loadFileConfigs(envConfigDir, options);
 
-  return config.util.extendDeep(config.util.cloneDeep(config.get(moduleName)), envConfig);
+  return config.util.extendDeep(config, envConfig);
 }
 
 const esModuleDirName = path.dirname(fileURLToPath(import.meta.url));
