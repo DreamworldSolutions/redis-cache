@@ -23,12 +23,12 @@ const getModuleConfig = (moduleRootDir, moduleName) => {
     appConfig = {};
   }
 
-  let config = config.util.extendDeep(baseConfig, appConfig);
+  let moduleConfig = config.util.extendDeep(baseConfig, appConfig);
 
   const envConfigDir = path.join(moduleRootDir, 'config-env');
   const envConfig = config.util.loadFileConfigs(envConfigDir, options);
 
-  return config.util.extendDeep(config, envConfig);
+  return config.util.extendDeep(moduleConfig, envConfig);
 }
 
 const esModuleDirName = path.dirname(fileURLToPath(import.meta.url));
