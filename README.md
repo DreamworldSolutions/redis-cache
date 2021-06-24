@@ -100,8 +100,16 @@ let globalCache = cacheManager.getGlobalCache('cache-name');
 //Few example usage:
 await cache.set('key1', 'val1');
 await cache.set('key1', 'val1', 600); //with ttl as the 3rd argument
+await cache.mset('key1', 'val1', 'key2', 'val2', 'key3', 'val3', {ttl: 600});
+
+
 let val1 = await cache.get('key1');
+let vals = await cache.mget('key1', 'key2', 'key3'); //vals =  ['val1', null, 'val3'];
+//Note: mget doesn't support array of keys as a single argument.
+
 await cache.del('key1');
+await cache.del('key1', 'key2');
+await cache.del(['key1', 'key2']);
 
 const getUser = async (id) => {
   //Actual logic to read user by it's id.
