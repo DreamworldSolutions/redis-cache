@@ -111,6 +111,8 @@ await cache.del('key1');
 await cache.del('key1', 'key2');
 await cache.del(['key1', 'key2']);
 
+await cache.reset(); //To delete all the cache entries
+
 const getUser = async (id) => {
   //Actual logic to read user by it's id.
   //Promise is resolved the User object once retrieved.
