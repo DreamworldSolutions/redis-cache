@@ -10,6 +10,14 @@ import moduleConfig from './module-config.js';
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
 
 /**
+ * It's the prefix to be applied for all the cache entries managed by this library.
+ * For Example, for the distributed (service-specific) caches, actual key will be 
+ * `dwcache:$serviceName:$cacheName:$key`.
+ * And for the Global caches, redis key will be `dwcache:$cacheName:$key`
+ */
+const REDIS_KEY_PREFIX = "dwcache:";
+
+/**
  * Holds the service caches built so far.
  */
 const serviceCaches = {};
@@ -93,7 +101,7 @@ const createServiceCache = (name) => {
   const cacheConfig = _config.serviceCaches && _config.serviceCaches[name] || {};
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
-  const cache = serviceCaches[name] = createCache(redisOptions(), `${_config.serviceName}:${name}:`, ttl, readOnly);
+  const cache = serviceCaches[name] = createCache(redisOptions(), `${REDIS_KEY_PREFIX}${_config.serviceName}:${name}:`, ttl, readOnly);
   watchServiceCache(cache);
   logger.info(`createServiceCache: ${name}`)
   return cache;
@@ -104,7 +112,7 @@ const createGlobalCache = (name) => {
   const cacheConfig = _config.globalCaches && _config.globalCaches[name] || {};
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
-  const cache = globalCaches[name] = createCache(redisOptions(), `${name}:`, ttl, readOnly);
+  const cache = globalCaches[name] = createCache(redisOptions(), `${REDIS_KEY_PREFIX}${name}:`, ttl, readOnly);
   watchGlobalCache(cache);
   logger.info(`createGlobalCache: name=${name}, ttl=${ttl}, readOnly=${readOnly}`);
   return cache;

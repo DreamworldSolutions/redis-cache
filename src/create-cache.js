@@ -86,22 +86,41 @@ const addRefresh = (cache) => {
 }
 
 const overrideKeys = (cache, prefix) => {
-  const _keys = cache.keys;
-  cache.keys = async (pattern = "*") => {
+  const _keys = cache.store.keys;
+  cache.store.keys = async (pattern = "*", cb) => {
+    if (typeof pattern === 'function') {
+      cb = pattern;
+      pattern = '*';
+    }
     pattern = prefix + pattern;
     let keys = await _keys.apply(cache, [pattern]);
-    return keys.map((key) => key.substr(prefix.length));
+    keys = keys.map((key) => key.substr(prefix.length));
+    if (cb) {
+      cb(keys);
+    }
+    return keys;
   }
+
+  cache.keys = cache.store.keys.bind(cache.store);
 }
 
 const overrideReset = (cache) => {
-  cache.reset = async () => {
+  // console.log('overrideReset invoked:', cache);
+  cache.store.reset = async (next) => {
+    // console.log('overrideReset:  invoked');
     let keys = await cache.keys();
-    if(keys.length === 0) {
+    // console.log('overrideReset: keys=', keys);
+    if (keys.length === 0) {
+      next();
       return;
     }
     await cache.del(keys);
+    if (next) {
+      next();
+    }
   }
+
+  cache.reset = cache.store.reset.bind(cache.store);
 }
 
 export default (redisOptions, prefix, ttl, readOnly = false) => {

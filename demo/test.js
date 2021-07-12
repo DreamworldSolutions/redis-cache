@@ -9,14 +9,26 @@ logger.info('hello');
 
 
 const test = async () => {
-  const cache1 = cacheManager.getGlobalCache('cache1');
-  // await cache1.set('key1', 'value1');
-  // await cache1.set('key2', 'value2');
-  // await cache1.set('key3', 'value3');
+  const cache1 = cacheManager.getGlobalCache('cache2');
+
+  const keys = await cache1.redis.keys();
+  logger.info("cache keys", keys);
+  return;
+
+  // await cache1.reset();
+  // logger.info("Cache Cleared");
+  // return;
+
+  await cache1.set('key1', 'value1');
+  await cache1.set('key2', 'value2');
+  await cache1.set('key3', 'value3');
+  await cache1.set('key4:nested', 'Rock the world');
+
 
 
   await cache1.set('unknown', 'hello');
-  let mValue = await cache1.mget('key1', 'key2', 'unknown', 'key3');
+  logger.info('unknown key set');
+  let mValue = await cache1.mget('key1', 'key2', 'unknown', 'key3', 'key4:nested');
   logger.info('mValue =', mValue);
 
   let startTime = new Date().getTime();
