@@ -86,6 +86,7 @@ redisCache:
 ### Usage
 
 ```javascript
+import { cacheManager } from '@dreamworld/redis-cache';
 
 //Retrieve the Service Cache
 let cache = cacheManager.getCache('cache-name');
