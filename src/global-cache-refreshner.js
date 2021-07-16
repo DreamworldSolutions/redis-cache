@@ -8,6 +8,7 @@ const parseMessage = (message) => {
   const cacheEntries = {}; //key = cacheName, value = Array of cache keys
   const redisKeys = message.split(',');
   redisKeys.forEach((redisKey) => {
+    redisKey = cacheManager._removeCacheKeyPrefix(redisKey);
     const tokens = redisKey.split(':');
     if (tokens.length < 2) {
       logger.warn(`Unexpected redisKey '${redisKey}'. It must be in the format $cacheName:$key`);

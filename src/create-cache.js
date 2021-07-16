@@ -12,22 +12,27 @@ const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
  * @param {caching} cache 
  */
 const overrideGet = (cache) => {
-  let _get = cache.get.bind(cache);
+  let _get = cache.get;
   cache.get = (async (...args) => {
+    logger.trace('get():', args);
     let val = await _get.apply(this, args);
     if (val !== undefined || val !== null) {
       cache.memory.set(args[0], val);
     } else {
       cache.memory.del(key);
     }
+    logger.trace(`get(${args[0]})=${val}`);
     return val;
   }).bind(cache);
 }
 
 const overrideMGet = (cache) => {
-  let _mget = cache.mget.bind(cache);
+  let _mget = cache.mget;
   cache.mget = (async (...args) => {
+    logger.trace('mget:', args);
     let vals = await _mget.apply(this, args);
+    vals = !Array.isArray(vals) ? [vals] : vals;
+    logger.trace(`mget:`, vals);
     args.forEach((key, index) => {
       let val = vals[index];
       if (val !== undefined || val !== null) {
@@ -68,14 +73,14 @@ const addRefresh = (cache) => {
     }
 
     await cache.memory.del(keys);
-    await cache.mget.apply(cache, keys);
+    await cache.mget(...keys);
     logger.trace(`refresh: done. prefix=${cache.prefix}, keys=${keys}`);
     return keys;
   }
 
   cache.refreshAll = async () => {
     let keys = await cache.memory.keys();
-    logger.debug('keys', keys);
+    logger.trace('refreshAll: keys=', keys);
     if (keys.length !== 0) {
       await cache.memory.reset();
       await cache.mget.apply(cache, keys);
@@ -92,8 +97,9 @@ const overrideKeys = (cache, prefix) => {
       cb = pattern;
       pattern = '*';
     }
+    logger.trace(`keys: invoked. prefix=${prefix}, pattern=${pattern}`);
     pattern = prefix + pattern;
-    let keys = await _keys.apply(cache, [pattern]);
+    let keys = await _keys.apply(cache.store, [pattern]);
     keys = keys.map((key) => key.substr(prefix.length));
     if (cb) {
       cb(keys);

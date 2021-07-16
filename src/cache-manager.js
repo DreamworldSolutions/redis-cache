@@ -15,7 +15,7 @@ const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
  * `dwcache:$serviceName:$cacheName:$key`.
  * And for the Global caches, redis key will be `dwcache:$cacheName:$key`
  */
-const REDIS_KEY_PREFIX = "dwcache:";
+export const REDIS_KEY_PREFIX = "dwcache:";
 
 /**
  * Holds the service caches built so far.
@@ -169,6 +169,21 @@ export const refreshAllCaches = () => {
   });
 
   return Promise.all(promises);
+}
+
+
+/**
+ * Removes library prefix (REDIS_KEY_PREFIX=dwcache:) from the given cacheKey.
+ * This is to be used internally by the library only.
+ * @param {String} cacheKey 
+ */
+export const _removeCacheKeyPrefix = (cacheKey) => {
+  if (cacheKey.indexOf(REDIS_KEY_PREFIX) === 0) {
+    return cacheKey.substr(REDIS_KEY_PREFIX.length);
+  } else {
+    logger.warn(`cacheKey=${cacheKey} doesn't start with ${REDIS_KEY_PREFIX}`);
+    return cacheKey;
+  }
 }
 
 

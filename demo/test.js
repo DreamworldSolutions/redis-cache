@@ -11,9 +11,9 @@ logger.info('hello');
 const test = async () => {
   const cache1 = cacheManager.getGlobalCache('cache2');
 
-  const keys = await cache1.redis.keys();
-  logger.info("cache keys", keys);
-  return;
+  // const keys = await cache1.redis.keys();
+  // logger.info("cache keys", keys);
+  // return;
 
   // await cache1.reset();
   // logger.info("Cache Cleared");
