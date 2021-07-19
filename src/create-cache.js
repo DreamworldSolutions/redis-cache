@@ -31,7 +31,12 @@ const overrideMGet = (cache) => {
   cache.mget = (async (...args) => {
     logger.trace('mget:', args);
     let vals = await _mget.apply(this, args);
-    vals = !Array.isArray(vals) ? [vals] : vals;
+
+    //default implementation of `mget` function has a bug; When it's
+    //asked for the single key, it returns plain-value (instead of 
+    //wrapping it in an Array). So, this is needed.
+    vals = args.length === 1 ? [vals] : vals;
+    
     logger.trace(`mget:`, vals);
     args.forEach((key, index) => {
       let val = vals[index];

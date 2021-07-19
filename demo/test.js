@@ -19,6 +19,9 @@ const test = async () => {
   // logger.info("Cache Cleared");
   // return;
 
+
+
+
   await cache1.set('key1', 'value1');
   await cache1.set('key2', 'value2');
   await cache1.set('key3', 'value3');
@@ -47,15 +50,21 @@ const test = async () => {
   value1 = await cache1.memory.get('key1');
   logger.info(`value1=${value1}, duration=${new Date().getTime() - startTime}`);
 
-  let wrapVal1 = await cache1.wrap('wrapkey1', async () => {
-    return 'wrapVal1';
-  }, {
-    isCacheableValue: () => false
-  });
-  logger.info('wrapVal1', wrapVal1);
+  setInterval(async () => {
+    let wrapVal1 = await cache1.wrap('wrapkey1', async () => {
+      logger.info("wrapKey1 actual logic invoked");
+      return [
+        { companyId: '0a2993f19a569df1b41467a984301bce', role: 'OWNER' },
+        { companyId: '86d6271dc7554413a662345b499ac0c9', role: 'OWNER' },
+        { companyId: '5459c32fda80403e3e85d482971224c0', role: 'OWNER' },
+        { companyId: 'e2e501fed8b8c13993d5b217b0035249', role: 'VIEWER' },
+        { companyId: 'bf463893a77b9aeb31a995c4b880fac3', role: 'OWNER' }
+      ];
+    });
+    logger.info('wrapVal1', wrapVal1);
+  }, 3000);
 
-  wrapVal1 = await cache1.get('wrapkey1');
-  logger.info('wrapVal1', wrapVal1);
+
 }
 
 test();
