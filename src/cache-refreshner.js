@@ -126,7 +126,7 @@ export const create = ({ logger, parseMessage, getCache, refreshAllCaches }) => 
   }
 
 
-  const _watchRequests = [];
+  let _watchRequests = [];
 
   const _watchAll = () => {
     logger.debug(`_watchAll: invoked. noOfRequests=${_watchRequests.length}`);
@@ -153,9 +153,22 @@ export const create = ({ logger, parseMessage, getCache, refreshAllCaches }) => 
     }
   }
 
+  const stopWatch = async (cache) => {
+    logger.debug(`stopWatch: prefix=${cache.prefix}`);
+    const redisClient = cache.redis.store.getClient();
+    _watchRequests = _watchRequests.filter((wr) => {
+      return wr.redisClient !== redisClient;
+    });
+
+    const clientCommand = promisify(redisClient.client).bind(redisClient);
+    await clientCommand('TRACKING', ['off']); 
+    logger.info(`stopWatch: done. prefix=${cache.prefix}`);
+  }
+
   return {
+    start,
     watch,
-    start
+    stopWatch
   };
 
 };
