@@ -104,7 +104,7 @@ const createServiceCache = (name) => {
   const cache = serviceCaches[name] = createCache(redisOptions(), `${REDIS_KEY_PREFIX}${_config.serviceName}:${name}:`, ttl, readOnly);
 
   cache.disconnect = () => {
-    serviceCaches[name] = undefined;
+    delete serviceCaches[name];
     stopWatchServiceCache(cache);
     _disconnectClient(cache);
     logger.info(`disconnect: done. serviceCache name=${name}`);
@@ -123,7 +123,7 @@ const createGlobalCache = (name) => {
   const cache = globalCaches[name] = createCache(redisOptions(), `${REDIS_KEY_PREFIX}${name}:`, ttl, readOnly);
 
   cache.disconnect = () => {
-    globalCaches[name] = undefined;
+    delete globalCaches[name];
     stopWatchGlobalCache(cache);
     _disconnectClient(cache);
     logger.info(`disconnect: done. globalCache name=${name}`);
