@@ -125,6 +125,10 @@ const getCachedUser = async (userId) => memoryCache.wrap(userId, () => getUser(u
 //use them directly. Though, it's exposed as an advanced use-case.
 let memoryStore = cache.memory;
 let redisStore = cache.redis;
+
+
+//When you don't need a cache, you may free underlying redis connections 
+cache.disconnect();
 ```
 
 Please note that,
