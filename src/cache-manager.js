@@ -3,8 +3,8 @@ process.env.SUPPRESS_NO_CONFIG_WARNING = 'y';
 import log4js from 'log4js';
 import redisRetryStrategy from './redis-retry-strategy.js';
 import createCache from './create-cache.js';
-import { watch as watchServiceCache, start as startServiceCacheRefreshner } from './service-cache-refreshner.js';
-import { watch as watchGlobalCache, start as startGlobalCacheRefreshner } from './global-cache-refreshner.js';
+import { start as startServiceCacheRefreshner, watch as watchServiceCache, stopWatch as stopWatchServiceCache, } from './service-cache-refreshner.js';
+import { start as startGlobalCacheRefreshner, watch as watchGlobalCache, stopWatch as stopWatchGlobalCache } from './global-cache-refreshner.js';
 import moduleConfig from './module-config.js';
 
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
@@ -102,6 +102,14 @@ const createServiceCache = (name) => {
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
   const cache = serviceCaches[name] = createCache(redisOptions(), `${REDIS_KEY_PREFIX}${_config.serviceName}:${name}:`, ttl, readOnly);
+
+  cache.disconnect = () => {
+    delete serviceCaches[name];
+    stopWatchServiceCache(cache);
+    _disconnectClient(cache);
+    logger.info(`disconnect: done. serviceCache name=${name}`);
+  };
+
   watchServiceCache(cache);
   logger.info(`createServiceCache: ${name}`)
   return cache;
@@ -113,6 +121,14 @@ const createGlobalCache = (name) => {
   const ttl = cacheConfig.ttl;
   const readOnly = cacheConfig.readOnly;
   const cache = globalCaches[name] = createCache(redisOptions(), `${REDIS_KEY_PREFIX}${name}:`, ttl, readOnly);
+
+  cache.disconnect = () => {
+    delete globalCaches[name];
+    stopWatchGlobalCache(cache);
+    _disconnectClient(cache);
+    logger.info(`disconnect: done. globalCache name=${name}`);
+  };
+
   watchGlobalCache(cache);
   logger.info(`createGlobalCache: name=${name}, ttl=${ttl}, readOnly=${readOnly}`);
   return cache;
@@ -183,6 +199,15 @@ export const _removeCacheKeyPrefix = (cacheKey) => {
   } else {
     logger.warn(`cacheKey=${cacheKey} doesn't start with ${REDIS_KEY_PREFIX}`);
     return cacheKey;
+  }
+}
+
+const _disconnectClient = (cache) => {
+  try {
+    const redisClient = cache.redis.store.getClient();
+    redisClient.quit();
+  } catch (e) {
+    logger.error('_disconnectClient: failed', e);
   }
 }
 

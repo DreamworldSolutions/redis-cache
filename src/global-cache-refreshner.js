@@ -32,3 +32,4 @@ const module = create({ logger, getCache, refreshAllCaches, parseMessage });
 
 export const start = module.start;
 export const watch = module.watch;
+export const stopWatch = module.stopWatch;
