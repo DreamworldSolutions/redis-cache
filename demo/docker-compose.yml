@@ -1,0 +1,11 @@
+
+
+redis:
+  image: redis
+  command:
+  - --requirepass chirag1234
+  - --appendonly yes
+  volumes:
+  - redisdata:/data
+  ports:
+  - 6379:6379
