@@ -36,7 +36,7 @@ const overrideMGet = (cache) => {
     //asked for the single key, it returns plain-value (instead of 
     //wrapping it in an Array). So, this is needed.
     vals = args.length === 1 ? [vals] : vals;
-    
+
     logger.trace(`mget:`, vals);
     args.forEach((key, index) => {
       let val = vals[index];
@@ -115,6 +115,10 @@ const overrideKeys = (cache, prefix) => {
   cache.keys = cache.store.keys.bind(cache.store);
 }
 
+/**
+ * Overrides reset function of the redisCache.
+ * @param {*} cache 
+ */
 const overrideReset = (cache) => {
   // console.log('overrideReset invoked:', cache);
   cache.store.reset = async (next) => {
@@ -125,6 +129,7 @@ const overrideReset = (cache) => {
       next();
       return;
     }
+
     await cache.del(keys);
     if (next) {
       next();
@@ -132,6 +137,27 @@ const overrideReset = (cache) => {
   }
 
   cache.reset = cache.store.reset.bind(cache.store);
+}
+
+/**
+ * Overrides reset funtion of the multi-caching.
+ * Default implementation of the reset function has a bug. It doesn't return
+ * Promise, and our usage pattern needs a promise. So, this updates implementation
+ * to add Promise interface to it.
+ * @param {} cache 
+ */
+const overrideReset2 = async (cache) => {
+  const fnReset = cache.reset.bind(cache);
+  cache.reset = (next) => {
+    return new Promise((resolve, reject) => {
+      fnReset(() => {
+        next && next();
+        resolve();
+      }, (e) => {
+        reject(e);
+      });
+    });
+  }
 }
 
 export default (redisOptions, prefix, ttl, readOnly = false) => {
@@ -151,5 +177,6 @@ export default (redisOptions, prefix, ttl, readOnly = false) => {
   overrideGet(multiCache);
   overrideMGet(multiCache);
   addRefresh(multiCache);
+  overrideReset2(multiCache);
   return multiCache;
 }
