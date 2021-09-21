@@ -1,7 +1,6 @@
 import cacheManager from 'cache-manager';
 import redisStore from 'cache-manager-redis-store';
 import log4js from 'log4js';
-import Promise from 'es6-promise';
 
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
 
