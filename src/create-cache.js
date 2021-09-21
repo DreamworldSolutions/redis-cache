@@ -130,11 +130,7 @@ const overrideReset = (cache) => {
       return;
     }
 
-    console.log("cache.reset:: del started. next={}", next);
-    await cache.del(keys).then(() => {
-      console.log("cache.reset:: del completed");
-    });
-    console.log("cache.reset:: del await completed.");
+    await cache.del(keys);
     if (next) {
       next();
     }
