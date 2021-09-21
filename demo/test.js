@@ -64,9 +64,12 @@ const test = async () => {
   //   logger.info('wrapVal1', wrapVal1);
   // }, 3000);
 
-  setTimeout(()=> {
+  setTimeout(async ()=> {
+    console.log("going to reset cache..."); 
+    await cache1.reset();
+    console.log("cache is reset");
     cache1.disconnect();
-  }, 5000);
+  }, 2000);
 
 }
 
