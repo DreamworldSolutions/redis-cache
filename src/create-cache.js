@@ -5,6 +5,130 @@ import log4js from 'log4js';
 const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
 
 /**
+ * It adds given keys into `__keys__` Set.
+ * @param {*} cache 
+ * @param {Array} keys 
+ */
+const _setKeys = (cache, keys) => {
+  return new Promise((resolve, reject) => {
+    const redisClient = cache.store.getClient();
+    redisClient.sadd(['__keys__', ...keys], function (err, res) {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      logger.trace(`set: key added into Set. key=${keys}`);
+      resolve();
+    });
+  });
+};
+
+/**
+ * It removes given keys from `__keys__` Set.
+ * @param {*} cache 
+ * @param {Array} keys 
+ */
+const _deleteKeys = (cache, keys) => {
+  return new Promise((resolve, reject) => {
+    const redisClient = cache.store.getClient();
+
+    redisClient.srem(['__keys__', ...keys], function (err, res) {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      logger.trace(`del: keys removed from Set. keys=${keys}`);
+      resolve();
+    });
+  });
+};
+
+/**
+ * Overrides given redisCache's set() method.
+ * @param {*} cache 
+ */
+const overrideSet = (cache) => {
+  const _set = cache.store.set;
+
+  cache.store.set = async (...args) => {
+    await _setKeys(cache, [args[0]]);
+    await _set.apply(cache.store, [...args]);
+  };
+
+  cache.set = cache.store.set.bind(cache.store);
+};
+
+/**
+ * Overrides given redisCache's mset() method.
+ * @param {*} cache 
+ */
+const overrideMSet = (cache) => {
+  const _mset = cache.store.mset;
+
+  cache.store.mset = async (...args) => {
+    let keys = [];
+    let _args = [...args];
+
+    if (typeof _args[_args.length - 1] === 'function') {
+      _args.pop();
+    }
+
+    if (_args[_args.length - 1] instanceof Object && _args[_args.length - 1].constructor === Object) {
+      _args.pop();
+    }
+
+    for (let i = 0; i < _args.length; i += 2) {
+      keys.push(_args[i]);
+    }
+
+    await _setKeys(cache, keys);
+    await _mset.apply(cache.store, [...args]);
+  };
+
+  cache.set = cache.store.set.bind(cache.store);
+};
+
+/**
+ * Overrides given redisCache's del() method.
+ * @param {*} cache 
+ */
+const overrideDel = (cache) => {
+  const _del = cache.store.del;
+
+  cache.store.del = async (...args) => {
+    let _args = [...args];
+    let skipDelKeys = false;
+
+    if (typeof _args[_args.length - 1] === 'function') {
+      _args.pop();
+    }
+
+    if (_args[_args.length - 1] instanceof Object && _args[_args.length - 1].constructor === Object) {
+      _args.pop();
+    }
+
+    if (typeof _args[_args.length - 1] === 'boolean') {
+      args.splice(_args.length - 1, 1);
+      skipDelKeys = _args.pop();
+    }
+
+    if(Array.isArray(args[0])) {
+      _args = [...args[0]];
+    }
+
+    if(!skipDelKeys) {
+      await _deleteKeys(cache, _args);
+    }
+
+    await _del.apply(cache.store, [...args]);
+  };
+
+  cache.del = cache.store.del.bind(cache.store);
+};
+
+/**
  * It overrides `get` method of the cache to resolve a bug in the multi-cache's `get`.
  * multi-cache's `get` returns the value from the redis cache when it doesn't exist into
  * in-memory, but after that the newly read value isn't put into the in-memory cache.
@@ -96,21 +220,28 @@ const addRefresh = (cache) => {
 }
 
 const overrideKeys = (cache, prefix) => {
-  const _keys = cache.store.keys;
-  cache.store.keys = async (pattern = "*", cb) => {
-    if (typeof pattern === 'function') {
-      cb = pattern;
-      pattern = '*';
-    }
-    logger.trace(`keys: invoked. prefix=${prefix}, pattern=${pattern}`);
-    pattern = prefix + pattern;
-    let keys = await _keys.apply(cache.store, [pattern]);
-    keys = keys.map((key) => key.substr(prefix.length));
-    if (cb) {
-      cb(keys);
-    }
-    return keys;
-  }
+  const redisClient = cache.store.getClient();
+
+  cache.store.keys = (pattern = "*", cb) => {
+    return new Promise((resolve, reject) => {
+      if (typeof pattern === 'function') {
+        cb = pattern;
+        pattern = '*';
+      }
+
+      logger.trace(`keys: invoked. prefix=${prefix}, pattern=${pattern}`);
+
+      redisClient.smembers('__keys__', function(err, keys) {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        cb && cb(keys);
+        resolve(keys);
+      });
+    });
+  };
 
   cache.keys = cache.store.keys.bind(cache.store);
 }
@@ -130,7 +261,8 @@ const overrideReset = (cache) => {
       return;
     }
 
-    await cache.del(keys);
+    await cache.del(keys, true);
+    await cache.del('__keys__', true);
     if (next) {
       next();
     }
@@ -162,6 +294,9 @@ const overrideReset2 = async (cache) => {
 
 export default (redisOptions, prefix, ttl, readOnly = false) => {
   let redisCache = cacheManager.caching({ store: redisStore, ...redisOptions, prefix, ttl: ttl });
+  overrideSet(redisCache);
+  overrideMSet(redisCache);
+  overrideDel(redisCache);
   overrideKeys(redisCache, prefix);
   overrideReset(redisCache);
 
