@@ -9,7 +9,7 @@ const logger = log4js.getLogger('dreamworld.redis-cache.cache-manager');
  * @param {*} cache 
  * @param {Array} keys 
  */
-const _setKeys = (cache, keys) => {
+const _addKeys = (cache, keys) => {
   return new Promise((resolve, reject) => {
     const redisClient = cache.store.getClient();
     redisClient.sadd(['__keys__', ...keys], function (err, res) {
@@ -29,7 +29,7 @@ const _setKeys = (cache, keys) => {
  * @param {*} cache 
  * @param {Array} keys 
  */
-const _deleteKeys = (cache, keys) => {
+const _removeKeys = (cache, keys) => {
   return new Promise((resolve, reject) => {
     const redisClient = cache.store.getClient();
 
@@ -53,7 +53,7 @@ const overrideSet = (cache) => {
   const _set = cache.store.set;
 
   cache.store.set = async (...args) => {
-    await _setKeys(cache, [args[0]]);
+    await _addKeys(cache, [args[0]]);
     await _set.apply(cache.store, [...args]);
   };
 
@@ -83,7 +83,7 @@ const overrideMSet = (cache) => {
       keys.push(_args[i]);
     }
 
-    await _setKeys(cache, keys);
+    await _addKeys(cache, keys);
     await _mset.apply(cache.store, [...args]);
   };
 
@@ -119,7 +119,7 @@ const overrideDel = (cache) => {
     }
 
     if(!skipDelKeys) {
-      await _deleteKeys(cache, _args);
+      await _removeKeys(cache, _args);
     }
 
     await _del.apply(cache.store, [...args]);
@@ -227,6 +227,12 @@ const overrideKeys = (cache, prefix) => {
       if (typeof pattern === 'function') {
         cb = pattern;
         pattern = '*';
+      }
+
+      //Currently, we doesn't support pattern other than '*'.
+      if(pattern !== '*') {
+        reject(`pattern must be (*). pattern=${pattern}`);
+        return;
       }
 
       logger.trace(`keys: invoked. prefix=${prefix}, pattern=${pattern}`);
